@@ -80,5 +80,11 @@ class AlertManager:
             with urllib.request.urlopen(req, timeout=10):
                 pass
             return True
-        except Exception:
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "cronwrap: failed to send alert to %s: %s",
+                self.config.webhook_url,
+                exc,
+            )
             return False
