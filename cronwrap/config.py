@@ -1,54 +1,50 @@
+"""Configuration aggregation for cronwrap."""
+from dataclasses import dataclass
+from typing import Optional
 import os
-from dataclasses import dataclass, field
-from typing import List, Optional
 
 from cronwrap.logger import LogConfig
+from cronwrap.metrics import MetricsConfig
 
 
 @dataclass
 class CronwrapConfig:
-    command: List[str] = field(default_factory=list)
-    retries: int = 0
-    timeout: Optional[float] = None
-    job_name: str = "cronwrap"
-    log_file: Optional[str] = None
-    log_level: str = "INFO"
-    notify_on_failure: bool = True
-    notify_on_success: bool = False
+    job_name: str
+    retries: int
+    timeout: Optional[float]
+    log_config: LogConfig
+    metrics_config: MetricsConfig
 
-    def log_config(self) -> LogConfig:
-        return LogConfig(
-            log_file=self.log_file,
-            log_level=self.log_level,
-            job_name=self.job_name,
+    @classmethod
+    def from_args(cls, args) -> "CronwrapConfig":
+        log_config = LogConfig(
+            log_file=getattr(args, "log_file", None),
+            log_level=getattr(args, "log_level", "INFO"),
+        )
+        metrics_config = MetricsConfig(
+            metrics_file=getattr(args, "metrics_file", None),
+            enabled=bool(getattr(args, "metrics_file", None)),
+        )
+        return cls(
+            job_name=getattr(args, "job_name", "cron-job"),
+            retries=getattr(args, "retries", 0),
+            timeout=getattr(args, "timeout", None),
+            log_config=log_config,
+            metrics_config=metrics_config,
         )
 
-
-def from_args(args) -> CronwrapConfig:
-    """Build a CronwrapConfig from parsed CLI args (argparse.Namespace)."""
-    return CronwrapConfig(
-        command=args.command,
-        retries=getattr(args, "retries", 0),
-        timeout=getattr(args, "timeout", None),
-        job_name=getattr(args, "job_name", "cronwrap"),
-        log_file=getattr(args, "log_file", None),
-        log_level=getattr(args, "log_level", "INFO"),
-        notify_on_failure=getattr(args, "notify_on_failure", True),
-        notify_on_success=getattr(args, "notify_on_success", False),
-    )
-
-
-def from_env(base: Optional[CronwrapConfig] = None) -> CronwrapConfig:
-    """Override config fields from environment variables."""
-    cfg = base or CronwrapConfig()
-    if val := os.getenv("CRONWRAP_JOB_NAME"):
-        cfg.job_name = val
-    if val := os.getenv("CRONWRAP_LOG_FILE"):
-        cfg.log_file = val
-    if val := os.getenv("CRONWRAP_LOG_LEVEL"):
-        cfg.log_level = val
-    if val := os.getenv("CRONWRAP_RETRIES"):
-        cfg.retries = int(val)
-    if val := os.getenv("CRONWRAP_TIMEOUT"):
-        cfg.timeout = float(val)
-    return cfg
+    @classmethod
+    def from_env(cls) -> "CronwrapConfig":
+        log_config = LogConfig(
+            log_file=os.environ.get("CRONWRAP_LOG_FILE"),
+            log_level=os.environ.get("CRONWRAP_LOG_LEVEL", "INFO"),
+        )
+        metrics_config = MetricsConfig.from_env()
+        timeout_raw = os.environ.get("CRONWRAP_TIMEOUT")
+        return cls(
+            job_name=os.environ.get("CRONWRAP_JOB_NAME", "cron-job"),
+            retries=int(os.environ.get("CRONWRAP_RETRIES", "0")),
+            timeout=float(timeout_raw) if timeout_raw else None,
+            log_config=log_config,
+            metrics_config=metrics_config,
+        )
