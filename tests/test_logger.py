@@ -37,6 +37,15 @@ def test_setup_logger_file_handler_added(tmp_path):
     assert any(isinstance(h, logging.FileHandler) for h in logger.handlers)
 
 
+def test_setup_logger_no_duplicate_handlers():
+    """Calling setup_logger twice for the same job should not add duplicate handlers."""
+    config = LogConfig(job_name="test_dedup")
+    logger1 = setup_logger(config)
+    handler_count = len(logger1.handlers)
+    logger2 = setup_logger(config)
+    assert len(logger2.handlers) == handler_count
+
+
 def test_log_run_result_success(caplog):
     config = LogConfig(job_name="myjob", log_level="DEBUG")
     logger = setup_logger(config)
