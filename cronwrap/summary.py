@@ -1,58 +1,54 @@
-"""Aggregate run summaries from history for reporting."""
-from __future__ import annotations
-from dataclasses import dataclass
-from typing import List, Optional
-from cronwrap.history import HistoryEntry
+"""Run summary aggregation for cronwrap pipeline output."""
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+from cronwrap.runner import RunResult
 
 
 @dataclass
 class RunSummary:
-    job_name: Optional[str]
-    total_runs: int
-    successful_runs: int
-    failed_runs: int
-    success_rate: float
-    avg_duration: float
-    min_duration: float
-    max_duration: float
-    last_status: Optional[bool]
-    last_started_at: Optional[str]
+    job_name: str
+    success: bool
+    exit_code: int
+    duration: float
+    retries: int = 0
+    tags: List[str] = field(default_factory=list)
+    stdout: str = ""
+    stderr: str = ""
+    error: Optional[str] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> Dict[str, Any]:
         return {
             "job_name": self.job_name,
-            "total_runs": self.total_runs,
-            "successful_runs": self.successful_runs,
-            "failed_runs": self.failed_runs,
-            "success_rate": round(self.success_rate, 4),
-            "avg_duration": round(self.avg_duration, 3),
-            "min_duration": self.min_duration,
-            "max_duration": self.max_duration,
-            "last_status": self.last_status,
-            "last_started_at": self.last_started_at,
+            "success": self.success,
+            "exit_code": self.exit_code,
+            "duration": round(self.duration, 3),
+            "retries": self.retries,
+            "tags": self.tags,
+            "stdout": self.stdout,
+            "stderr": self.stderr,
+            "error": self.error,
+            **self.extra,
         }
 
 
-def summarize(entries: List[HistoryEntry], job_name: Optional[str] = None) -> RunSummary:
-    if not entries:
-        return RunSummary(
-            job_name=job_name, total_runs=0, successful_runs=0, failed_runs=0,
-            success_rate=0.0, avg_duration=0.0, min_duration=0.0, max_duration=0.0,
-            last_status=None, last_started_at=None,
-        )
-    total = len(entries)
-    successes = sum(1 for e in entries if e.success)
-    durations = [e.duration for e in entries]
-    last = entries[-1]
+def summarize(
+    result: RunResult,
+    job_name: str = "",
+    retries: int = 0,
+    tags: Optional[List[str]] = None,
+    extra: Optional[Dict[str, Any]] = None,
+) -> RunSummary:
+    """Build a RunSummary from a RunResult and optional metadata."""
     return RunSummary(
-        job_name=job_name or last.job_name,
-        total_runs=total,
-        successful_runs=successes,
-        failed_runs=total - successes,
-        success_rate=successes / total,
-        avg_duration=sum(durations) / total,
-        min_duration=min(durations),
-        max_duration=max(durations),
-        last_status=last.success,
-        last_started_at=last.started_at,
+        job_name=job_name,
+        success=result.success,
+        exit_code=result.exit_code,
+        duration=result.duration,
+        retries=retries,
+        tags=tags or [],
+        stdout=result.stdout,
+        stderr=result.stderr,
+        error=result.error,
+        extra=extra or {},
     )
