@@ -24,14 +24,26 @@ def build_audit_parser(subparsers=None) -> argparse.ArgumentParser:
     return parser
 
 
-def run_audit_cli(args: argparse.Namespace) -> int:
+def _load_entries(args: argparse.Namespace):
+    """Load audit entries from the configured or specified log file.
+
+    Exits with an error message if the log file cannot be read.
+    """
     config = AuditConfig.from_env()
     config.enabled = True  # reading always allowed
     if args.log:
         config.log_path = args.log
 
     logger = AuditLogger(config)
-    entries = logger.read_all()
+    try:
+        return logger.read_all()
+    except OSError as exc:
+        print(f"Error reading audit log: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+def run_audit_cli(args: argparse.Namespace) -> int:
+    entries = _load_entries(args)
 
     if args.audit_cmd == "show":
         for entry in entries[-args.limit:]:
