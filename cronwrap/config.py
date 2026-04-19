@@ -41,10 +41,23 @@ class CronwrapConfig:
         )
         metrics_config = MetricsConfig.from_env()
         timeout_raw = os.environ.get("CRONWRAP_TIMEOUT")
+        retries_raw = os.environ.get("CRONWRAP_RETRIES", "0")
+        try:
+            retries = int(retries_raw)
+            if retries < 0:
+                raise ValueError("Retries must be a non-negative integer.")
+        except ValueError as e:
+            raise ValueError(f"Invalid value for CRONWRAP_RETRIES={retries_raw!r}: {e}") from e
+        try:
+            timeout = float(timeout_raw) if timeout_raw else None
+            if timeout is not None and timeout <= 0:
+                raise ValueError("Timeout must be a positive number.")
+        except ValueError as e:
+            raise ValueError(f"Invalid value for CRONWRAP_TIMEOUT={timeout_raw!r}: {e}") from e
         return cls(
             job_name=os.environ.get("CRONWRAP_JOB_NAME", "cron-job"),
-            retries=int(os.environ.get("CRONWRAP_RETRIES", "0")),
-            timeout=float(timeout_raw) if timeout_raw else None,
+            retries=retries,
+            timeout=timeout,
             log_config=log_config,
             metrics_config=metrics_config,
         )
