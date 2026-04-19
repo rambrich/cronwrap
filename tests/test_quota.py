@@ -74,3 +74,11 @@ def test_expired_runs_not_counted(tmp_path):
     p.write_text(json.dumps({"runs": [old]}))
     assert qm.within_quota() is True
     assert qm.remaining() == 1
+
+
+def test_remaining_zero_when_quota_exhausted(cfg):
+    """remaining() should return 0 (not negative) after all runs are consumed."""
+    qm = QuotaManager(cfg, "job")
+    qm.consume()
+    qm.consume()
+    assert qm.remaining() == 0
