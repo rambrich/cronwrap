@@ -32,6 +32,18 @@ def test_validate_expression_invalid_without_croniter():
         assert validate_expression("bad expression") is False
 
 
+@pytest.mark.parametrize("expr", [
+    "not a cron",
+    "* * * *",        # too few fields
+    "* * * * * * *",  # too many fields
+    "",
+])
+def test_validate_expression_invalid_cases_without_croniter(expr):
+    """Parameterized check that clearly invalid expressions fail without croniter."""
+    with patch("cronwrap.scheduler._CRONITER_AVAILABLE", False):
+        assert validate_expression(expr) is False
+
+
 def test_validate_expression_with_croniter():
     mock_croniter = MagicMock()
     mock_croniter.is_valid.return_value = True
@@ -80,3 +92,10 @@ def test_seconds_until_next_run_positive():
     with patch("cronwrap.scheduler.next_run", return_value=future):
         secs = seconds_until_next_run("*/5 * * * *", base)
     assert secs == pytest.approx(300.0)
+
+
+def test_seconds_until_next_run_none_when_next_run_returns_none():
+    """Ensure seconds_until_next_run propagates None when next_run cannot compute a value."""
+    base = datetime(2024, 1, 1, 12, 0, 0)
+    with patch("cronwrap.scheduler.next_run", return_value=None):
+        assert seconds_until_next_run("*/5 * * * *", base) is None
