@@ -26,6 +26,15 @@ def test_summarize_avg_duration():
     assert s["avg_duration"] == 3.0
 
 
+def test_summarize_all_failures():
+    """Ensure failure-only traces are counted correctly with zero successes."""
+    entries = [_entry(success=False), _entry(success=False)]
+    s = summarize_traces(entries)
+    assert s["total"] == 2
+    assert s["successes"] == 0
+    assert s["failures"] == 2
+
+
 def test_render_report_contains_header():
     report = render_trace_report([_entry()])
     assert "Trace Report" in report
@@ -40,3 +49,10 @@ def test_render_report_shows_checkmark():
 def test_render_report_shows_cross():
     report = render_trace_report([_entry(success=False)])
     assert "✗" in report
+
+
+def test_render_report_includes_trace_id():
+    """Ensure each entry's trace_id appears in the rendered report."""
+    trace_id = "xyz-789"
+    report = render_trace_report([_entry(trace_id=trace_id)])
+    assert trace_id in report
