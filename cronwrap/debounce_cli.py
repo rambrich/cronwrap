@@ -22,6 +22,8 @@ def build_parser() -> argparse.ArgumentParser:
     reset_p = sub.add_parser("reset", help="Clear debounce state for a job")
     reset_p.add_argument("job_id", help="Job identifier")
 
+    sub.add_parser("list", help="List all jobs with debounce state")
+
     return parser
 
 
@@ -48,6 +50,26 @@ def cmd_reset(cfg: DebounceConfig, job_id: str) -> None:
         print(f"No debounce state to clear for job '{job_id}'.")
 
 
+def cmd_list(cfg: DebounceConfig) -> None:
+    """List all jobs that have recorded debounce state."""
+    state_dir = Path(cfg.state_dir)
+    if not state_dir.exists():
+        print("No debounce state directory found.")
+        return
+    state_files = sorted(state_dir.glob("*.json"))
+    if not state_files:
+        print("No debounce state found for any job.")
+        return
+    for state_file in state_files:
+        job_id = state_file.stem
+        try:
+            data = json.loads(state_file.read_text())
+            last_run = data.get("last_run", "unknown")
+        except (json.JSONDecodeError, OSError):
+            last_run = "(unreadable)"
+        print(f"{job_id}: {last_run}")
+
+
 def main(argv=None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -57,6 +79,8 @@ def main(argv=None) -> None:
         cmd_status(cfg, args.job_id)
     elif args.command == "reset":
         cmd_reset(cfg, args.job_id)
+    elif args.command == "list":
+        cmd_list(cfg)
     else:
         parser.print_help()
         sys.exit(1)
