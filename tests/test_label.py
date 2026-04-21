@@ -44,6 +44,12 @@ def test_parse_labels_no_value():
     assert result == {"flag": ""}
 
 
+def test_parse_labels_whitespace_is_stripped():
+    """Keys and values with surrounding whitespace should be stripped."""
+    result = parse_labels(" env = prod , team = ops ")
+    assert result == {"env": "prod", "team": "ops"}
+
+
 def test_matches_labels_all_match():
     assert matches_labels({"env": "prod", "team": "ops"}, {"env": "prod"}) is True
 
@@ -54,6 +60,11 @@ def test_matches_labels_mismatch():
 
 def test_matches_labels_empty_selector():
     assert matches_labels({"env": "prod"}, {}) is True
+
+
+def test_matches_labels_missing_key():
+    """Selector key not present in entry labels should not match."""
+    assert matches_labels({"env": "prod"}, {"team": "ops"}) is False
 
 
 def test_get_labels_disabled():
