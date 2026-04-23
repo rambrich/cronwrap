@@ -86,6 +86,18 @@ class WatchdogManager:
         elapsed = time.time() - state.last_run_at
         return elapsed > self.config.interval_seconds
 
+    def seconds_since_last_run(self) -> Optional[float]:
+        """Return the number of seconds elapsed since the last successful run.
+
+        Returns None if watchdog is disabled or no run has been recorded yet.
+        """
+        if not self.config.enabled:
+            return None
+        state = self._load_state()
+        if state is None:
+            return None
+        return time.time() - state.last_run_at
+
     def reset(self) -> None:
         p = self._state_path()
         if p.exists():
