@@ -49,6 +49,10 @@ def cmd_status(args: argparse.Namespace) -> None:
 
 
 def cmd_enable(args: argparse.Namespace) -> None:
+    """Enable a maintenance window, validating that duration is positive."""
+    if args.duration <= 0:
+        print(f"Error: --duration must be a positive integer, got {args.duration}.", file=sys.stderr)
+        sys.exit(1)
     mgr = _manager()
     window = mgr.set_window(args.duration, reason=args.reason)
     print(f"Maintenance window enabled for {args.duration}s (ends at {window.end:.0f}).")
