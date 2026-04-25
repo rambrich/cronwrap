@@ -40,6 +40,7 @@ def cmd_list(args: argparse.Namespace) -> None:
 
 
 def cmd_show(args: argparse.Namespace) -> None:
+    """Load and pretty-print a single trace entry by ID."""
     mgr = _manager()
     entry = mgr.load(args.trace_id)
     if entry is None:
@@ -51,7 +52,11 @@ def cmd_show(args: argparse.Namespace) -> None:
 
 def cmd_report(args: argparse.Namespace) -> None:
     mgr = _manager()
-    print_trace_report(mgr.list_traces())
+    traces = mgr.list_traces()
+    if not traces:
+        print("No traces found.")
+        return
+    print_trace_report(traces)
 
 
 def main(argv=None) -> None:
