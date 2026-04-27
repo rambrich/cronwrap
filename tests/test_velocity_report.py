@@ -18,6 +18,7 @@ def state_dir(tmp_path):
 
 
 def _write_state(state_dir: Path, job: str, count: int) -> None:
+    """Write a fake job state file with `count` timestamps spaced 1 minute apart."""
     import time
     now = time.time()
     timestamps = [now - i * 60 for i in range(count)]
@@ -76,3 +77,16 @@ def test_render_report_no_spikes_shows_none(state_dir):
     summary = summarize_states(str(state_dir))
     report = render_report(summary)
     assert "none" in report
+
+
+def test_render_report_lists_spike_jobs(state_dir):
+    """Spike jobs reported by summarize_states should appear in the rendered report."""
+    _write_state(state_dir, "job_a", 2)
+    # Manually construct a summary with a known spike job to verify rendering.
+    summary = VelocitySummary(
+        total_jobs=1,
+        spike_jobs=["job_a"],
+        avg_rate_per_hour=10.0,
+    )
+    report = render_report(summary)
+    assert "job_a" in report
