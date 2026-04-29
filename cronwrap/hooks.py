@@ -71,3 +71,11 @@ class HookManager:
             logger.info("Running post-hook: %s", hook)
             results.append(_run_hook(hook))
         return results
+
+    def all_pre_hooks_passed(self) -> bool:
+        """Run all pre-hooks and return True only if every hook succeeded.
+
+        Returns True when there are no pre-hooks configured (vacuously true).
+        """
+        results = self.run_pre_hooks()
+        return all(results) if results else True
