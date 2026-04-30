@@ -66,3 +66,15 @@ def test_passthrough_when_disabled():
     f = OutputFilter(cfg)
     text = "\x1b[32mcolored\x1b[0m"
     assert f.filter(text) == text
+
+
+def test_exclude_patterns_multiple_matches():
+    """Ensure all lines matching any exclude pattern are removed."""
+    cfg = OutputFilterConfig(exclude_patterns=[r"DEBUG", r"TRACE"])
+    f = OutputFilter(cfg)
+    text = "INFO: ok\nDEBUG: noisy\nTRACE: verbose\nINFO: done\n"
+    result = f.filter(text)
+    assert "DEBUG" not in result
+    assert "TRACE" not in result
+    assert "INFO: ok" in result
+    assert "INFO: done" in result
